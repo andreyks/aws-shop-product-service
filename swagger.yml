@@ -1,0 +1,31 @@
+openapi: "3.0.1"
+info:
+  title: "Product API"
+  version: "2025-02-22 19:17:19UTC"
+servers:
+- url: "https://am2xsc1rw3.execute-api.eu-north-1.amazonaws.com/{basePath}"
+  variables:
+    basePath:
+      default: "development"
+tags:
+- name: "aws:cloudformation:stack-id"
+- name: "aws:cloudformation:stack-name"
+- name: "aws:cloudformation:logical-id"
+paths:
+  /products:
+    get:
+      responses:
+        default:
+          description: "Product list GET /products"
+  /products/{product_id}:
+    get:
+      responses:
+        default:
+          description: "Fetch single product GET /products/{product_id}"
+    parameters:
+    - name: "product_id"
+      in: "path"
+      description: "Generated path parameter for product_id"
+      required: true
+      schema:
+        type: "string"
