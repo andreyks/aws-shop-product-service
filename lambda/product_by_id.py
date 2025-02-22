@@ -57,18 +57,24 @@ def handler(event, context):
     ]
 
     response = {
+        'statusCode': 200,
         'headers': {
             'Content-Type': 'application/json',
-        },
+        }
     }
 
     # Requested product id.
     product_id = event['pathParameters']['product_id']
-    if isnumeric(product_id) and product_id > 0 and product_id <= len(dummy_products):
-        response.statusCode = 200
-        response.body = json.dumps(dummy_products[product_id-1])
+
+    if not product_id.isnumeric():
+        response['statusCode'] = 404
+        response['body'] = json.dumps('Product ID should be a number')
     else:
-        response.statusCode = 404
-        response.body = json.dumps('Wrong Product ID')
+        product_id = int(product_id)
+        if product_id > 0 and product_id <= len(dummy_products):
+            response['body'] = json.dumps(dummy_products[product_id-1])   
+        else:
+            response['statusCode'] = 404
+            response['body'] = json.dumps('Product not found')
 
     return response
