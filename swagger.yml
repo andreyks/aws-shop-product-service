@@ -14,14 +14,49 @@ tags:
 paths:
   /products:
     get:
+      summary: Get a list of products
       responses:
-        default:
-          description: "Product list GET /products"
+        "200":
+          description: A list of products
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    count:
+                      type: integer
+                    title:
+                      type: string
+                    description:
+                      type: string
+                    price:
+                      type: number
   /products/{product_id}:
     get:
       responses:
-        default:
-          description: "Fetch single product GET /products/{product_id}"
+        "200":
+          description: A single product
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  count:
+                    type: integer
+                  title:
+                    type: string
+                  description:
+                    type: string
+                  price:
+                    type: number
+        "404":
+          description: Product not found
     parameters:
     - name: "product_id"
       in: "path"
