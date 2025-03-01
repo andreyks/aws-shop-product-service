@@ -16,14 +16,14 @@ def handler(event, context):
             'id': 1,
             'count': 2,
             'title': 'Peanuts',
-            'description': f'Product cdsc long description',
+            'description': 'Product cdsc long description',
             'price': 5,
         },
         {
             'id': 2,
             'count': 3,
             'title': 'Cashews',
-            'description': f'Cashews long description',
+            'description': 'Cashews long description',
             'price': 15,
         },
         {
@@ -51,7 +51,7 @@ def handler(event, context):
             'id': 6,
             'count': 2,
             'title': 'Nazelnuts',
-            'description': f'Nazelnuts long description',
+            'description': 'Nazelnuts long description',
             'price': 18,
         },
     ]

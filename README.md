@@ -54,6 +54,12 @@ To add additional dependencies, for example other CDK libraries, just add
 them to your `setup.py` file and rerun the `pip install -r requirements.txt`
 command.
 
+Task 4 demo data import:
+
+```
+$ (cd demo_data; sh import.sh)
+```
+
 ## Deploy
 At this point you can deploy the stack. 
 

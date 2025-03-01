@@ -3,62 +3,40 @@
 
 import os
 import json
-# import logging
+import logging
+import boto3
+import uuid
 
-# logger = logging.getLogger()
-# logger.setLevel(logging.INFO)
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
+dynamodb = boto3.resource("dynamodb")
 
 
 def handler(event, context):
-    dummy_products = [
-        {
-            'id': 1,
-            'count': 2,
-            'title': 'Peanuts',
-            'description': f'Product cdsc long description',
-            'price': 5,
-        },
-        {
-            'id': 2,
-            'count': 3,
-            'title': 'Cashews',
-            'description': f'Cashews long description',
-            'price': 15,
-        },
-        {
-            'id': 3,
-            'count': 4,
-            'title': 'Walnuts',
-            'description': 'Walnuts long description',
-            'price': 5,
-        },
-        {
-            'id': 4,
-            'count': 5,
-            'title': 'Macadamia',
-            'description': 'Product hdfd long description',
-            'price': 40,
-        },
-        {
-            'id': 5,
-            'count': 2,
-            'title': 'Almond',
-            'description': 'Almond long description',
-            'price': 17,
-        },
-        {
-            'id': 6,
-            'count': 2,
-            'title': 'Nazelnuts',
-            'description': f'Nazelnuts long description',
-            'price': 18,
-        },
-    ]
+    table_name = os.environ.get("TABLE_NAME")
+    table = dynamodb.Table(table_name)
+    logging.info(f"## Loaded table name from environemt variable DDB_TABLE: {table}") 
+
+    body = table.scan()
+    body = body["Items"]
+    print("ITEMS----")
+    print(body)
+
+    responseBody = []
+    for items in body:
+        responseItems = [
+            {'price': float(items['price']), 
+             'id': items['id'], 
+             'name': items['name'],
+             'description': items['description']
+            }]
+        responseBody.append(responseItems)
     
     return {
         'statusCode': 200,
         'headers': {
             'Content-Type': 'application/json',
         },
-        'body': json.dumps(dummy_products)
+        'body': json.dumps(responseBody)
     }
