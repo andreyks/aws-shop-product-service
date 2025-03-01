@@ -12,8 +12,8 @@ from aws_cdk import (
 )
 from constructs import Construct
 
-TABLE_NAME_PRODUCT = "products"
-TABLE_NAME_STOCK = "stock"
+TABLE_NAME_PRODUCTS = "products"
+TABLE_NAME_STOCKS = "stocks"
 
 class ApigwHttpCdkStack(Stack):
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
@@ -22,14 +22,14 @@ class ApigwHttpCdkStack(Stack):
         # Create DynamoDb Tables. Default removal policy is RETAIN (`cdk destroy` will not remove these tables)
         product_table = dynamodb_.Table(
             self,
-            TABLE_NAME_PRODUCT,
+            TABLE_NAME_PRODUCTS,
             partition_key=dynamodb_.Attribute(
                 name="id", type=dynamodb_.AttributeType.STRING
             ),
         )
         stock_table = dynamodb_.Table(
             self,
-            TABLE_NAME_STOCK,
+            TABLE_NAME_STOCKS,
             partition_key=dynamodb_.Attribute(
                 name="id", type=dynamodb_.AttributeType.STRING
             ),
@@ -43,8 +43,8 @@ class ApigwHttpCdkStack(Stack):
             code=lambda_.Code.from_asset("lambda"),
             handler="product_list.handler",
             environment={
-                'TABLE_NAME_PRODUCT': product_table.table_name,
-                'TABLE_NAME_STOCK': stock_table.table_name,
+                'TABLE_NAME_PRODUCTS': product_table.table_name,
+                'TABLE_NAME_STOCKS': stock_table.table_name,
             },
         )
 
@@ -56,8 +56,8 @@ class ApigwHttpCdkStack(Stack):
             code=lambda_.Code.from_asset("lambda"),
             handler="product_by_id.handler",
             environment={
-                'TABLE_NAME_PRODUCT': product_table.table_name,
-                'TABLE_NAME_STOCK': stock_table.table_name,
+                'TABLE_NAME_PRODUCTS': product_table.table_name,
+                'TABLE_NAME_STOCKS': stock_table.table_name,
             },
         )
 
