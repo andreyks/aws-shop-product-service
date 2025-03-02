@@ -60,6 +60,19 @@ Task 4 demo data import:
 $ (cd demo_data; sh import.sh)
 ```
 
+Task 4 create new product with Gateway API:
+```
+curl -i \
+  -X POST https://am2xsc1rw3.execute-api.eu-north-1.amazonaws.com/development/products \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "title": "New test product",
+    "description": "New test product  description",
+    "price": "23.01",
+    "count": "4"
+}'
+```
+
 ## Deploy
 At this point you can deploy the stack. 
 
