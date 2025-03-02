@@ -7,6 +7,8 @@ import logging
 import boto3
 from botocore.exceptions import ClientError
 import uuid
+from collections import Counter
+from decimal import Decimal
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -24,13 +26,47 @@ def handler(event, context):
 
     # Request body (json)
     body = event['body']
-
     data = json.loads(body)
-    # TODO: validate input
-
+   
+    # Validate fields
+    if Counter(list(data)) != Counter(['title', 'description', 'price', 'count']):
+        logger.error(
+            "Invalid request data %s ",
+            body,
+        )
+        response['statusCode'] = 400
+        response['body'] = json.dumps('Invalid request data')
+        return response
+    
+    # Add uuid
     data['id'] = str(uuid.uuid4())
     logging.info(f"## Raw sourse data: {data}")
+    
+    # Validate price
+    try:
+        data['price'] = Decimal(str(data['price']))
+    except:
+        return invalidField('price', data, body)
+    
+    if data['price'] <= 0:
+        return invalidField('price', data, body)
+    
+    # Validate count
+    try:
+        data['count'] = int(data['count'])
+    except:
+        return invalidField('count', data, body)
+    if data['count'] < 0:
+        return invalidField('count', data, body)
+    
+    # Validate title
+    if len(data['title']) < 5 or len(data['title']) > 255:
+        return invalidField('title', data, body)
 
+    # Validate description
+    if len(data['description']) < 10 or len(data['description']) > 255:
+        return invalidField('description', data, body)
+    
     # Write product data
     try:
         product_data = {
@@ -85,4 +121,20 @@ def handler(event, context):
             'Content-Type': 'application/json',
         },
         'body': json.dumps(f"Product is created successfuly. Product url: https://d3eddq2lndvxd8.cloudfront.net/admin/product-form/{data['id']}")
+    }
+
+
+def invalidField(field, data, body):
+    logger.error(
+        "Invalid %s %s in body %s",
+        field,
+        data[field],
+        body,
+    )
+    return {
+        'statusCode': 400,
+        'headers': {
+            'Content-Type': 'application/json',
+        },
+        'body': json.dumps(f"Invalid value for field {field}")
     }
