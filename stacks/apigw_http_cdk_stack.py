@@ -39,7 +39,7 @@ class ApigwHttpCdkStack(Stack):
         api_hanlder_product_list = lambda_.Function(
             self,
             "getProductList",
-            runtime=lambda_.Runtime.PYTHON_3_9,
+            runtime=lambda_.Runtime.PYTHON_3_13,
             code=lambda_.Code.from_asset("lambda"),
             handler="product_list.handler",
             environment={
@@ -52,7 +52,7 @@ class ApigwHttpCdkStack(Stack):
         api_hanlder_product_by_id = lambda_.Function(
             self,
             "getProductById",
-            runtime=lambda_.Runtime.PYTHON_3_9,
+            runtime=lambda_.Runtime.PYTHON_3_13,
             code=lambda_.Code.from_asset("lambda"),
             handler="product_by_id.handler",
             environment={
