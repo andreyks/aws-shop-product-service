@@ -2,38 +2,87 @@
 # SPDX-License-Identifier: MIT-0
 
 import os
-
 from aws_cdk import (
     Stack,
     aws_apigatewayv2 as apigw_v2,
     aws_apigatewayv2_integrations as integrations,
+    aws_dynamodb as dynamodb_,
     aws_lambda as lambda_,
     CfnOutput
 )
-
 from constructs import Construct
+
+TABLE_NAME_PRODUCTS = "products"
+TABLE_NAME_STOCKS = "stocks"
 
 class ApigwHttpCdkStack(Stack):
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
-        # Create the Lambda function to receive the request
+        # Create DynamoDb Tables. Default removal policy is RETAIN (`cdk destroy` will not remove these tables)
+        product_table = dynamodb_.Table(
+            self,
+            TABLE_NAME_PRODUCTS,
+            partition_key=dynamodb_.Attribute(
+                name="id", type=dynamodb_.AttributeType.STRING
+            ),
+        )
+        stock_table = dynamodb_.Table(
+            self,
+            TABLE_NAME_STOCKS,
+            partition_key=dynamodb_.Attribute(
+                name="id", type=dynamodb_.AttributeType.STRING
+            ),
+        )
+
+        # Create the Lambda function to get ProductList
         api_hanlder_product_list = lambda_.Function(
             self,
             "getProductList",
-            runtime=lambda_.Runtime.PYTHON_3_9,
+            runtime=lambda_.Runtime.PYTHON_3_13,
             code=lambda_.Code.from_asset("lambda"),
             handler="product_list.handler",
+            environment={
+                'TABLE_NAME_PRODUCTS': product_table.table_name,
+                'TABLE_NAME_STOCKS': stock_table.table_name,
+            },
         )
 
-        # Create the Lambda function to receive the request
+        # Create the Lambda function to receive specific product
         api_hanlder_product_by_id = lambda_.Function(
             self,
             "getProductById",
-            runtime=lambda_.Runtime.PYTHON_3_9,
+            runtime=lambda_.Runtime.PYTHON_3_13,
             code=lambda_.Code.from_asset("lambda"),
             handler="product_by_id.handler",
+            environment={
+                'TABLE_NAME_PRODUCTS': product_table.table_name,
+                'TABLE_NAME_STOCKS': stock_table.table_name,
+            },
         )
+
+         # Create the Lambda function to create product
+        api_hanlder_product_create = lambda_.Function(
+            self,
+            "createProduct",
+            runtime=lambda_.Runtime.PYTHON_3_13,
+            code=lambda_.Code.from_asset("lambda"),
+            handler="product_create.handler",
+            environment={
+                'TABLE_NAME_PRODUCTS': product_table.table_name,
+                'TABLE_NAME_STOCKS': stock_table.table_name,
+            },
+        )
+
+        # Grant permission to lambda to read/write to db tables
+        product_table.grant_read_data(api_hanlder_product_list)
+        stock_table.grant_read_data(api_hanlder_product_list)
+
+        product_table.grant_read_data(api_hanlder_product_by_id)
+        stock_table.grant_read_data(api_hanlder_product_by_id)
+
+        product_table.grant_read_write_data(api_hanlder_product_create)
+        stock_table.grant_read_write_data(api_hanlder_product_create)
 
         # Create HTTP API
         http_api = apigw_v2.HttpApi(
@@ -61,6 +110,11 @@ class ApigwHttpCdkStack(Stack):
             path="/products",
             methods=[apigw_v2.HttpMethod.GET],
             integration=integrations.HttpLambdaIntegration("ProductListIntegration", api_hanlder_product_list)
+        )
+        http_api.add_routes(
+            path="/products",
+            methods=[apigw_v2.HttpMethod.POST],
+            integration=integrations.HttpLambdaIntegration("CreateProductIntegration", api_hanlder_product_create)
         )
         http_api.add_routes(
             path="/products/{product_id}",

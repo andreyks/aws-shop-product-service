@@ -7,10 +7,6 @@ servers:
   variables:
     basePath:
       default: "development"
-tags:
-- name: "aws:cloudformation:stack-id"
-- name: "aws:cloudformation:stack-name"
-- name: "aws:cloudformation:logical-id"
 paths:
   /products:
     get:
@@ -21,20 +17,23 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    id:
-                      type: integer
-                    count:
-                      type: integer
-                    title:
-                      type: string
-                    description:
-                      type: string
-                    price:
-                      type: number
+                $ref: "#/components/schemas/Product"
+    post:
+      summary: Create new product
+      requestBody:
+        description: Optional description in *Markdown*
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProductNew"
+      responses:
+        "200":
+          description: "Success message"
+          content:
+            application/json:
+              schema:
+                type: string
   /products/{product_id}:
     get:
       responses:
@@ -43,18 +42,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  id:
-                    type: integer
-                  count:
-                    type: integer
-                  title:
-                    type: string
-                  description:
-                    type: string
-                  price:
-                    type: number
+                $ref: "#/components/schemas/Product"
         "404":
           description: Product not found
     parameters:
@@ -64,3 +52,29 @@ paths:
       required: true
       schema:
         type: "string"
+components:
+  schemas:
+    ProductNew:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+        count:
+          type: number
+    Product:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+        count:
+          type: number
