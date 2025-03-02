@@ -13,18 +13,50 @@ logger.setLevel(logging.INFO)
 dynamodb = boto3.resource("dynamodb")
 
 def handler(event, context):
-    table_name_products = os.environ.get("TABLE_NAME_PRODUCTS")
-    table_products = dynamodb.Table(table_name_products)
-    body = table_products.scan()
-    items = body["Items"]
-    logging.info(f"## Raw products data: {body} from table {table_products.table_name}")
-    
-    table_name_stocks = os.environ.get("TABLE_NAME_STOCKS")
-    table_stocks = dynamodb.Table(table_name_stocks)
-    body = table_stocks.scan()
-    stocks = body["Items"]
-    logging.info(f"## Raw stocks data: {body} from table {table_stocks.table_name}")
+    # Load product data
+    try:
+        table_name_products = os.environ.get("TABLE_NAME_PRODUCTS")
+        table_products = dynamodb.Table(table_name_products)
+        body = table_products.scan()
+        logging.info(f"## Raw products data: {body} from table {table_products.table_name}")
+    except ClientError as err:
+        logger.error(
+            "Couldn't load from table %s . Here's why: %s: %s",
+            table_products.table_name,
+            err.response["Error"]["Code"],
+            err.response["Error"]["Message"],
+        )
+        items=[]
+    else:
+        try:
+            items = body["Items"]
+        except KeyError:
+            logger.error("No results from table %s", table_products.table_name)
+            items=[]
+            
+    # Load stocks information
+    try:
+        table_name_stocks = os.environ.get("TABLE_NAME_STOCKS")
+        table_stocks = dynamodb.Table(table_name_stocks)
+        body = table_stocks.scan()
+        logging.info(f"## Raw stocks data: {body} from table {table_stocks.table_name}")
+    except ClientError as err:
+        logger.error(
+            "Couldn't load from table %s . Here's why: %s: %s",
+            table_stocks.table_name,
+            err.response["Error"]["Code"],
+            err.response["Error"]["Message"],
+        )
+        stocks=[]
+    else:
+        try:
+            stocks = body["Items"]
+        except KeyError:
+            logger.error("No results from table %s", table_stocks.table_name)
+            stocks=[]
 
+
+    # Process product data
     response = {}
     for item in items:
         response[item['id']] = {
@@ -34,6 +66,7 @@ def handler(event, context):
             'description': item['description'],
         }
 
+    # Process stock data
     for stock in stocks:
         response[stock['id']].update({'count': int(stock['amount'])})
     

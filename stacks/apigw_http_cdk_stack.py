@@ -35,7 +35,7 @@ class ApigwHttpCdkStack(Stack):
             ),
         )
 
-        # Create the Lambda function to receive the request
+        # Create the Lambda function to get ProductList
         api_hanlder_product_list = lambda_.Function(
             self,
             "getProductList",
@@ -48,7 +48,7 @@ class ApigwHttpCdkStack(Stack):
             },
         )
 
-        # Create the Lambda function to receive the request
+        # Create the Lambda function to receive specific product
         api_hanlder_product_by_id = lambda_.Function(
             self,
             "getProductById",
@@ -61,12 +61,28 @@ class ApigwHttpCdkStack(Stack):
             },
         )
 
-        # Grant permission to lambda to write to demo table
+         # Create the Lambda function to create product
+        api_hanlder_product_create = lambda_.Function(
+            self,
+            "createProduct",
+            runtime=lambda_.Runtime.PYTHON_3_13,
+            code=lambda_.Code.from_asset("lambda"),
+            handler="product_create.handler",
+            environment={
+                'TABLE_NAME_PRODUCTS': product_table.table_name,
+                'TABLE_NAME_STOCKS': stock_table.table_name,
+            },
+        )
+
+        # Grant permission to lambda to read/write to db tables
         product_table.grant_read_data(api_hanlder_product_list)
         stock_table.grant_read_data(api_hanlder_product_list)
 
         product_table.grant_read_data(api_hanlder_product_by_id)
         stock_table.grant_read_data(api_hanlder_product_by_id)
+
+        product_table.grant_read_write_data(api_hanlder_product_create)
+        stock_table.grant_read_write_data(api_hanlder_product_create)
 
         # Create HTTP API
         http_api = apigw_v2.HttpApi(
@@ -94,6 +110,11 @@ class ApigwHttpCdkStack(Stack):
             path="/products",
             methods=[apigw_v2.HttpMethod.GET],
             integration=integrations.HttpLambdaIntegration("ProductListIntegration", api_hanlder_product_list)
+        )
+        http_api.add_routes(
+            path="/products",
+            methods=[apigw_v2.HttpMethod.POST],
+            integration=integrations.HttpLambdaIntegration("CreateProductIntegration", api_hanlder_product_create)
         )
         http_api.add_routes(
             path="/products/{product_id}",
