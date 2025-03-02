@@ -5,7 +5,7 @@ import os
 import json
 import logging
 import boto3
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError, ParamValidationError
 import uuid
 from collections import Counter
 from decimal import Decimal
@@ -13,7 +13,7 @@ from decimal import Decimal
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-dynamodb = boto3.resource("dynamodb")
+dynamodb_client = boto3.client('dynamodb')
 
 def handler(event, context):
     # Response template
@@ -40,7 +40,7 @@ def handler(event, context):
     
     # Add uuid
     data['id'] = str(uuid.uuid4())
-    logging.info(f"## Raw sourse data: {data}")
+    logging.info(f"## Raw sourse data: {json.dumps(data)}")
     
     # Validate price
     try:
@@ -67,54 +67,56 @@ def handler(event, context):
     if len(data['description']) < 10 or len(data['description']) > 255:
         return invalidField('description', data, body)
     
-    # Write product data
     try:
-        product_data = {
-            'price': data['price'],
-            'id': data['id'],
-            'title': data['title'],
-            'description': data['description'],
-        }
-        table_name_products = os.environ.get("TABLE_NAME_PRODUCTS")
-        table_products = dynamodb.Table(table_name_products)
-        body = table_products.put_item(Item=product_data)
-        logging.info(f"## Raw product response: {body} from table {table_products.table_name}")
+        response = dynamodb_client.transact_write_items(
+            TransactItems=[
+                {
+                    'Put': {
+                        'TableName': os.environ.get("TABLE_NAME_PRODUCTS"),
+                        'Item': {
+                            'id': {'S': data['id']},
+                            'title': {'S': data['title']},
+                            'description': {'S': data['description']},
+                            'price': {'N': str(data['price'])}
+                        }
+                    }
+                },
+                {
+                    'Put': {
+                        'TableName': os.environ.get("TABLE_NAME_STOCKS"),
+                        'Item': {
+                            'id': {'S': data['id']},
+                            'amount': {'N': str(data['count'])},
+                        }
+                    }
+                }
+            ]
+        )
+        logging.info(f"## Transaction response: {json.dumps(response)}")
     except ClientError as err:
         logger.error(
-            "Couldn't put data %s into table table %s . Here's why: %s: %s",
-            product_data,
-            table_products.table_name,
+            "Couldn't put product model %s into tables %s and %s . Here's why: %s: %s",
+            data,
+            os.environ.get("TABLE_NAME_PRODUCTS"),
+            os.environ.get("TABLE_NAME_STOCKS"),
             err.response["Error"]["Code"],
             err.response["Error"]["Message"],
         )
         response['statusCode'] = 500
         response['body'] = json.dumps('Error')
         return response
-    
-    # Write stock data
-    try:
-        stock_data = {
-            'id': data['id'],
-            'amount': data['count'],
-        }
-        table_name_stocks = os.environ.get("TABLE_NAME_STOCKS")
-        table_stocks = dynamodb.Table(table_name_stocks)
-        body = table_stocks.put_item(Item=stock_data)
-        logging.info(f"## Raw stocks response: {body} from table {table_stocks.table_name}")
-    except ClientError as err:
+    except ParamValidationError as err:
         logger.error(
-            "Couldn't put data %s into table table %s . Here's why: %s: %s",
-            stock_data,
-            table_stocks.table_name,
-            err.response["Error"]["Code"],
-            err.response["Error"]["Message"],
+            "Couldn't put product model %s into tables %s and %s . Here's why: %s",
+            data,
+            os.environ.get("TABLE_NAME_PRODUCTS"),
+            os.environ.get("TABLE_NAME_STOCKS"),
+            err
         )
         response['statusCode'] = 500
         response['body'] = json.dumps('Error')
         return response
-    
-    # Retrieve new product with stock data
-    
+
     return {
         'statusCode': 200,
         'headers': {
