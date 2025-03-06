@@ -1,0 +1,64 @@
+{
+    "ApigwHttpCdkStack-products606FDFD3-JUZ899ONY7IS": [
+        {
+            "PutRequest": {
+                "Item": {
+                    "id": { "S": "a9ebaae9-639a-4510-a0ec-6f17db20a322" },
+                    "title": { "S": "Peanuts" },
+                    "description": { "S": "Peanuts long description" },
+                    "price": { "N": "5" }
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                "Item": {
+                    "id": { "S": "d3164f5d-ecd5-4361-8890-414f2dd21f4e" },
+                    "title": { "S": "Cashews" },
+                    "description": { "S": "Cashews long description" },
+                    "price": { "N": "15" }
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                "Item": {
+                    "id": { "S": "072c1bd1-6a33-4d6e-b1e4-13401195eca9" },
+                    "title": { "S": "Walnuts" },
+                    "description": { "S": "Walnuts long description" },
+                    "price": { "N": "6" }
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                "Item": {
+                    "id": { "S": "a6a75256-9680-4b8d-8cd3-a427a0145690" },
+                    "title": { "S": "Macadamia" },
+                    "description": { "S": "Macadamia long description" },
+                    "price": { "N": "40" }
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                "Item": {
+                    "id": { "S": "acfdf44d-2a27-48fb-90ef-500b93dc538e" },
+                    "title": { "S": "Almond" },
+                    "description": { "S": "Almond long description" },
+                    "price": { "N": "17" }
+                }
+            }
+        },
+        {
+            "PutRequest": {
+                "Item": {
+                    "id": { "S": "a43da17b-4bd5-40c8-8cd6-067d9330b590" },
+                    "title": { "S": "Nazelnuts" },
+                    "description": { "S": "Nazelnuts long description" },
+                    "price": { "N": "18" }
+                }
+            }
+        }
+    ]
+}
