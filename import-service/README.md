@@ -48,10 +48,11 @@ At this point you can now synthesize the CloudFormation template for this code.
 $ cdk synth
 ```
 
-<!-- Task 4 demo data import:
+Task 5 - upload file manually:
 
 ```
-$ (cd demo_data; sh import.sh)
+echo "title,description,price,count\nTest Product,Description for Test Product,10,5\nTest Product 2,Description for Test Product 2,20,10" > data.csv
+SIGNED_URL=$(curl -s -X GET "https://jbuqseyfkg.execute-api.eu-north-1.amazonaws.com/development/import?name=data.csv") && curl -X PUT -T data.csv -H "Content-Type: text/csv" "$SIGNED_URL"
 ```
 
 Task 4 create new product with Gateway API:
