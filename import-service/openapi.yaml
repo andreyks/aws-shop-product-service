@@ -10,11 +10,20 @@ servers:
 paths:
   /import:
     get:
+      description: "Retrieve signed url for file upload"
       responses:
         200:
           description: "Signed url as a text "
-          content: 
-            type: string
+          content:
+            text/html: 
+              schema:
+                type: string
+      parameters:
+      - in: query
+        name: name
+        schema:
+          type: string
+        description: The name of file to be uploaded
 x-amazon-apigateway-cors:
   allowMethods:
   - "*"
