@@ -1,0 +1,26 @@
+openapi: "3.0.1"
+info:
+  title: "Import API"
+  version: "2025-03-07 23:36:38UTC"
+servers:
+- url: "https://jbuqseyfkg.execute-api.eu-north-1.amazonaws.com/{basePath}"
+  variables:
+    basePath:
+      default: "development"
+paths:
+  /import:
+    get:
+      responses:
+        200:
+          description: "Signed url as a text "
+          content: 
+            type: string
+x-amazon-apigateway-cors:
+  allowMethods:
+  - "*"
+  allowHeaders:
+  - "*"
+  maxAge: -42
+  allowCredentials: false
+  allowOrigins:
+  - "*"
