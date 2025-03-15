@@ -7,13 +7,12 @@ from aws_cdk import (
     aws_lambda as lambda_,
     aws_iam as iam,
     aws_s3_notifications as s3n,
-    # aws_s3_deployment as s3deploy,
-    CfnOutput
+    CfnOutput,
 )
 from constructs import Construct
+from dotenv import load_dotenv
 
-BUCKET_NAME = 'task-5-import-csv'
-CORS_URL = 'https://d3eddq2lndvxd8.cloudfront.net'
+load_dotenv()
 
 class ImportServiceStack(Stack):
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
@@ -21,7 +20,7 @@ class ImportServiceStack(Stack):
 
         # Create an S3 bucket. Default removal_policy=RemovalPolicy.RETAIN
         bucket = s3.Bucket(self, "ImportBucket",
-            bucket_name = BUCKET_NAME,
+            bucket_name = os.getenv('BUCKET_NAME'),
             versioned=True,
             encryption=s3.BucketEncryption.S3_MANAGED,
             enforce_ssl=True,
@@ -30,16 +29,10 @@ class ImportServiceStack(Stack):
                 s3.CorsRule(
                     allowed_headers=["*"],
                     allowed_methods=[s3.HttpMethods.PUT, s3.HttpMethods.POST, s3.HttpMethods.GET, s3.HttpMethods.DELETE],
-                    allowed_origins=[CORS_URL],
+                    allowed_origins=[os.getenv('CORS_URL')],
                 )
             ]
         )
-        # # Create a folder in the S3 bucket
-        # s3deploy.BucketDeployment(self, "ImportFolder",
-        #     sources=[s3deploy.Source.asset("./empty_folder")],
-        #     destination_bucket=bucket,
-        #     destination_key_prefix="uploaded/",
-        # )
 
         ## Import products file
         # Create the Lambda function to import product csv file
@@ -69,7 +62,8 @@ class ImportServiceStack(Stack):
             code=lambda_.Code.from_asset("lambda"),
             handler="parse_file.handler",
             environment={
-                "BUCKET_NAME": bucket.bucket_name
+                "BUCKET_NAME": bucket.bucket_name,
+                'QUEUE_URL': os.getenv('QUEUE_URL'),
             },
         )
         # Grant the Lambda function permission to read the bucket
@@ -81,6 +75,10 @@ class ImportServiceStack(Stack):
             s3.EventType.OBJECT_CREATED,
             s3n.LambdaDestination(parse_product_file),
             s3.NotificationKeyFilter(prefix="uploaded/"),
+        )
+        # Export the Lambda function role's ARN to grant it access to SQS from Product Servise Stack 
+        CfnOutput(self, "parseFileLambdaRoleArn",
+            value=parse_product_file.role.role_arn,
         )
 
         # Create HTTP API
