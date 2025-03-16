@@ -1,11 +1,6 @@
-'''
-Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
-SPDX-License-Identifier: MIT-0
-'''
-
 import aws_cdk as cdk
-from stacks.apigw_http_cdk_stack import ApigwHttpCdkStack
+from stacks.product_service_stack import ProductServiceStack
 
 app = cdk.App()
-ApigwHttpCdkStack(app, "ApigwHttpCdkStack")
+ProductServiceStack(app, "ProductStack")
 app.synth()

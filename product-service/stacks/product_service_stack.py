@@ -20,7 +20,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-class ApigwHttpCdkStack(Stack):
+class ProductServiceStack(Stack):
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
@@ -49,6 +49,12 @@ class ApigwHttpCdkStack(Stack):
             visibility_timeout = Duration.seconds((LAMBDA_TIMEOUT * 6))
         )
         CfnOutput(self, "QueueUrl", value=catalogItemsQueue.queue_url)
+
+        # Create an SNS topic
+        email_topic = sns.Topic(self, "ProductImportEmail",
+            display_name="Product Import Notification"
+        )
+        email_topic.add_subscription(sns_subs.EmailSubscription(os.getenv('EMAIL')))
 
         # Create the Lambda function to get ProductList
         api_hanlder_product_list = lambda_.Function(
@@ -102,6 +108,7 @@ class ApigwHttpCdkStack(Stack):
                 'SQS_QUEUE_URL': catalogItemsQueue.queue_url,
                 'TABLE_NAME_PRODUCTS': product_table.table_name,
                 'TABLE_NAME_STOCKS': stock_table.table_name,
+                "SNS_TOPIC_ARN": email_topic.topic_arn,
             },
             timeout = Duration.seconds(LAMBDA_TIMEOUT)
         )
@@ -119,6 +126,7 @@ class ApigwHttpCdkStack(Stack):
         product_table.grant_read_write_data(api_hanlder_catalog_batch_process)
         stock_table.grant_read_write_data(api_hanlder_catalog_batch_process)
         catalogItemsQueue.grant_consume_messages(api_hanlder_catalog_batch_process)
+        email_topic.grant_publish(api_hanlder_catalog_batch_process)
 
         # Retirve role from Import Stack for lambda function parse_file
         existing_role = aws_iam.Role.from_role_arn(
