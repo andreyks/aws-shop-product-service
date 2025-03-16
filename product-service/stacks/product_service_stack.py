@@ -42,10 +42,21 @@ class ProductServiceStack(Stack):
 
         # Queue with products to be processed after import
         LAMBDA_TIMEOUT = int(os.getenv('LAMBDA_TIMEOUT'))
+        # Create the Dead Letter Queue (DLQ)
+        dlq = sqs.Queue(
+            self,
+            id=os.getenv('CATALOG_ITEMS_QUEUE') + 'Dlg',
+            retention_period=Duration.days(7)
+        )
+        dead_letter_queue = sqs.DeadLetterQueue(
+            max_receive_count=1,
+            queue=dlq
+        )
+        # Create the SQS queue with DLQ setting
         catalogItemsQueue = sqs.Queue(
             self,
             id = os.getenv('CATALOG_ITEMS_QUEUE'),
-            # dead_letter_queue=dead_letter_queue,
+            dead_letter_queue=dead_letter_queue,
             visibility_timeout = Duration.seconds((LAMBDA_TIMEOUT * 6))
         )
         CfnOutput(self, "QueueUrl", value=catalogItemsQueue.queue_url)
@@ -54,7 +65,21 @@ class ProductServiceStack(Stack):
         email_topic = sns.Topic(self, "ProductImportEmail",
             display_name="Product Import Notification"
         )
-        email_topic.add_subscription(sns_subs.EmailSubscription(os.getenv('EMAIL')))
+        # Create email subscriptions with filter policies
+        email_topic.add_subscription(sns_subs.EmailSubscription(os.getenv('EMAIL_LOW_PRICE'),
+            filter_policy={
+                "price": sns.SubscriptionFilter.numeric_filter(
+                    less_than_or_equal_to=10
+                )
+            }
+        ))
+        email_topic.add_subscription(sns_subs.EmailSubscription(os.getenv('EMAIL_HIGH_PRICE'),
+            filter_policy={
+                "price": sns.SubscriptionFilter.numeric_filter(
+                    greater_than=10
+                )
+            }
+        ))
 
         # Create the Lambda function to get ProductList
         api_hanlder_product_list = lambda_.Function(

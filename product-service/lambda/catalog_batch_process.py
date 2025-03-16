@@ -16,8 +16,6 @@ def handler(event, context):
     logging.info(f"Messages: {json.dumps(messages)}")
     
     # Process each message in the batch
-    rows_success = []
-    rows_fail = []
     for message in messages:
         # Retrieve the JSON message body
         message_body = json.loads(message['body'])
@@ -26,22 +24,10 @@ def handler(event, context):
         try:
             validateProduct(message_body)
             saveProduct(message_body)
-            rows_success.append(message_body)
+            notify(message_body)
         except Exception as e:
             logging.error(repr(e) + f". Raw row data: {message['body']}")
-            rows_fail.append(message_body)
             continue
-
-    try:
-        # Send a single email notification about all products imported in current batch
-        sns_client = boto3.client('sns')
-        sns_client.publish(
-            TopicArn=os.environ['SNS_TOPIC_ARN'],
-            Subject='New products creation',
-            Message = f"Follow products have been processed and written to DynamoDB: {rows_success}\n\nThese rows was skipped die to error: {rows_fail}"
-        )
-    except Exception as e:
-        logging.error(repr(e) + f". Rows_success: {json.dumps(rows_success)}. Failed rows: {json.dumps(rows_fail)} ")
 
 def validateProduct(data):
     # Validate uuid. Generate UUID for the record if it is missing
@@ -110,3 +96,21 @@ def saveProduct(data):
         raise Exception(f"Save product error {err.response["Error"]["Code"]}: {err.response["Error"]["Message"]}.")
     except ParamValidationError as err:
         raise Exception(f"Save product error {err}.")
+
+def notify(message):
+    price = float(message.get('price', 0))
+
+    # Send a single email notification about all products imported in current batch
+    sns_client = boto3.client('sns')
+    sns_client.publish(
+        TopicArn=os.environ['SNS_TOPIC_ARN'],
+        Subject='New products creation',
+        Message = f"Product is added to database: {message}",
+        MessageAttributes={
+            'price': {
+                'DataType': 'Number',
+                'StringValue': str(price)
+            }
+        }
+    )
+    logging.info(f"Notify product with price {str(price)}: {json.dumps(message)}")
