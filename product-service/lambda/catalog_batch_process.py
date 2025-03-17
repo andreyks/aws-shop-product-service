@@ -13,7 +13,7 @@ logger.setLevel(logging.INFO)
 def handler(event, context):
     # Retrieve the messages from the SQS event
     messages = event['Records']
-    logging.info(f"Messages: {json.dumps(messages)}")
+    logging.info(f"Messages: {messages}")
     
     # Process each message in the batch
     for message in messages:
@@ -93,9 +93,9 @@ def saveProduct(data):
         )
         logging.info(f"## Transaction response: {json.dumps(response)}")
     except ClientError as err:
-        raise Exception(f"Save product error {err.response["Error"]["Code"]}: {err.response["Error"]["Message"]}.")
+        raise Exception(f"Save product ClientError: {err.response["Error"]["Code"]}: {err.response["Error"]["Message"]}.")
     except ParamValidationError as err:
-        raise Exception(f"Save product error {err}.")
+        raise Exception(f"Save product ParamValidationError {err}.")
 
 def notify(message):
     price = float(message.get('price', 0))
@@ -113,4 +113,4 @@ def notify(message):
             }
         }
     )
-    logging.info(f"Notify product with price {str(price)}: {json.dumps(message)}")
+    logging.info(f"Notify product with price {str(price)}: {message}")

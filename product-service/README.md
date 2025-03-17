@@ -108,8 +108,9 @@ pip install -r requirements-dev.txt
 ```
 run tests
 ```
-pytest -s tests/unit/test_product_by_id.py
-pytest -s tests/unit/test_product_list.py
+pytest -W ignore::DeprecationWarning -s tests/unit/test_product_by_id.py
+pytest -W ignore::DeprecationWarning -s tests/unit/test_product_list.py
+pytest -W ignore::DeprecationWarning -s tests/unit/test_catalog_batch_process.py
 ```
 
 ## Useful commands
