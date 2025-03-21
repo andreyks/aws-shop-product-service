@@ -12,6 +12,8 @@ import json
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..', 'lambda')))
 from import_file import handler as lambda_handler
 
+AWS_REGION = 'us-east-1'
+
 @pytest.fixture
 def aws_credentials():
     """Mocked AWS Credentials for moto."""
@@ -20,7 +22,7 @@ def aws_credentials():
 @pytest.fixture
 def s3_client(aws_credentials):
     with mock_aws():
-        yield boto3.client('s3', region_name='us-east-1')
+        yield boto3.client('s3', region_name = AWS_REGION)
 
 def test_lambda_handler_success(s3_client):
     # Set up test data
