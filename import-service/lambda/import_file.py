@@ -33,16 +33,6 @@ def handler(event, context):
             },
             'body': presigned_url
         }
-    except NameError as error:
-        return {
-            'statusCode': 502,
-            'body': json.dumps({'error': str(e)})
-        }
-    except (UnboundLocalError,RuntimeError, TypeError, NameError):
-        return {
-            'statusCode': 501,
-            'body': json.dumps({'error': str(e)})
-        }
     except Exception as e:
         logger.error(
             "Error processing file %s. Here's why: %s",
