@@ -8,6 +8,9 @@ from aws_cdk import (
     aws_iam as iam,
     aws_s3_notifications as s3n,
     CfnOutput,
+    Fn,
+    aws_sqs as sqs,
+    aws_iam,
 )
 from constructs import Construct
 from dotenv import load_dotenv
@@ -54,6 +57,12 @@ class ImportServiceStack(Stack):
         # Grant the Lambda function permission to read the bucket
         bucket.grant_read(import_product_file)
 
+        # Import quque from Product Stack
+        queueArn = Fn.import_value('CatalogItemsQueueArn')
+        importedCatalogItemsQueue = sqs.Queue.from_queue_arn(
+            self, 'ImportedCatalogItemsQueue', queueArn
+        )
+
         ## Parse product file
         parse_product_file = lambda_.Function(
             self,
@@ -63,7 +72,7 @@ class ImportServiceStack(Stack):
             handler="parse_file.handler",
             environment={
                 "BUCKET_NAME": bucket.bucket_name,
-                'QUEUE_URL': os.getenv('QUEUE_URL'),
+                'QUEUE_URL': importedCatalogItemsQueue.queue_url,
             },
         )
         # Grant the Lambda function permission to read the bucket
@@ -76,10 +85,15 @@ class ImportServiceStack(Stack):
             s3n.LambdaDestination(parse_product_file),
             s3.NotificationKeyFilter(prefix="uploaded/"),
         )
-        # Export the Lambda function role's ARN to grant it access to SQS from Product Servise Stack 
-        CfnOutput(self, "parseFileLambdaRoleArn",
-            value=parse_product_file.role.role_arn,
-        )
+        importedCatalogItemsQueue.grant_send_messages(parse_product_file)
+        # # Define the queue policy to allow messages from the Lambda function's to SQS
+        # policy = aws_iam.PolicyStatement(
+        #     actions=['sqs:SendMessage', 'sqs:GetQueueUrl','sqs:ListQueues'],
+        #     effect=aws_iam.Effect.ALLOW,
+        #     principals=[aws_iam.ArnPrincipal(parse_product_file.role.role_arn)],
+        #     resources=[importedCatalogItemsQueue.queue_arn]
+        # )
+        # importedCatalogItemsQueue.add_to_resource_policy(policy)
 
         # Create HTTP API
         http_api = apigw_v2.HttpApi(
@@ -98,7 +112,7 @@ class ImportServiceStack(Stack):
             auto_deploy=True
         )
         # Output the API URL
-        CfnOutput(self, "HttpApiUrl", value=http_api.url)
+        CfnOutput(self, "HttpApiUrl", value=http_api.url, export_name='ImportApiUrl')
 
         # Adding a route
         http_api.add_routes(

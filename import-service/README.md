@@ -89,8 +89,8 @@ pip install -r requirements-dev.txt
 ```
 run tests
 ```
-pytest -s tests/unit/test_import_file.py
-pytest -s tests/unit/test_parse_file.py
+pytest -W ignore::DeprecationWarning -s tests/unit/test_import_file.py
+pytest -W ignore::DeprecationWarning -s tests/unit/test_parse_file.py
 ```
 
 ## Useful commands
