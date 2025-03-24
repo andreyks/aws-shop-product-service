@@ -64,6 +64,29 @@ With specific profile
 $ cdk deploy --profile test
 ```
 
+## Testing
+
+Set valid auth token. Please type in browser JS console with valid user name:
+```
+const token = btoa('vasiapupkin=TEST_PASSWORD'); localStorage.setItem('authorization_token', token)
+```
+
+Testing with curl (please put valid credentials):
+```
+# 200 (OK)
+curl -v -H "Authorization: Basic $(echo -n "vasiapupkin=TEST_PASSWORD" | base64)"  "https://jbuqseyfkg.execute-api.eu-north-1.amazonaws.com/development/import?name=data.csv"
+
+# 403 (wrong username/password)
+curl -v -H "Authorization: Basic $(echo -n "vasiapupkin=TEST_PASSWOR" | base64)"  "https://jbuqseyfkg.execute-api.eu-north-1.amazonaws.com/development/import?name=data.csv"
+curl -v -H "Authorization: Basic $(echo -n "vasiapupkin=" | base64)"  "https://jbuqseyfkg.execute-api.eu-north-1.amazonaws.com/development/import?name=data.csv"
+
+# 500 (wrong Authorization header format)
+curl -v -H "Authorization: Basic $(echo -n "vasiapupkin" | base64)"  "https://jbuqseyfkg.execute-api.eu-north-1.amazonaws.com/development/import?name=data.csv"
+curl -v -H "Authorization: $(echo -n "vasiapupkin=TEST_PASSWORD" | base64)"  "https://jbuqseyfkg.execute-api.eu-north-1.amazonaws.com/development/import?name=data.csv"
+
+# 401 (missing Authorization header)
+curl -v "https://jbuqseyfkg.execute-api.eu-north-1.amazonaws.com/development/import?name=data.csv"
+```
 
 ## Cleanup 
 Run below script to delete AWS resources created by this sample stack.

@@ -10,18 +10,34 @@ logger.setLevel(logging.INFO)
 def handler(event, context):
     logger.info(event)
     try:
-        authorization_header = event['authorizationToken']
-
-        if not authorization_header:
+        # Authorization Header
+        if not ('authorizationToken' in event and event['authorizationToken']):
             logger.error("No authorization header")
+            # return 'unauthorized'
             return {
                 'statusCode': 401,
-                'body': 'Unauthorized',
+                'body': json.dumps({'message': 'No authorization header'}),
             }
+            # return generateDeny(username, event['methodArn'])
+        authorization_header = event['authorizationToken'] # event['identitySource'][0] for SIMPLE
+        logger.info(authorization_header)
         
-        # Retrieve credentials.
-        encodedCreds = authorization_header.split(' ')[1]
-        decodedCreds = base64.b64decode(encodedCreds).decode('utf-8')
+        # Retrieve token.
+        token = authorization_header.split(' ')
+        if not (token[0] == 'Basic' and len(token) == 2 and token[1]):
+            logger.error("Invalid authorization header")
+            # return 'unauthorized'
+            return {
+                'statusCode': 401,
+                'body': json.dumps({'message': 'Invalid authorization header'}),
+            }
+            # return generateDeny(username, event['methodArn'])
+        token = token[1]
+        logger.info(token)
+
+        # Credentials.
+        decodedCreds = base64.b64decode(token).decode('utf-8')
+        logger.info(decodedCreds)
         username, password = decodedCreds.split('=')
         password = password.strip()
         # load creadential from ENV
@@ -36,10 +52,11 @@ def handler(event, context):
         
     except Exception as e:
         logger.error(f"## Error: {e}")
-        return {
-            'statusCode': 500,
-            'body': 'Internal Server Error',
-        }
+        return 'unauthorized'
+        # return {
+        #     'statusCode': 500,
+        #     'body': 'Custom Internal Server Error',
+        # }
 
 def generatePolicy(principalId, effect, resource):
     authResponse = {}
@@ -59,11 +76,18 @@ def generatePolicy(principalId, effect, resource):
     # return authResponse_JSON
 
 def generateAllow(principalId, resource):
+    logger.info(f"## Allow: principalId: {resource}, resource: {resource}")
     return generatePolicy(principalId, 'Allow', resource)
 
 
 def generateDeny(principalId, resource):
-    return {
-        'statusCode': 403,
-        'body': 'Forbidden',
+    logger.info(f"## Deny: principalId: {resource}, resource: {resource}")
+    response = generatePolicy(principalId, 'Deny', resource)
+    response['context'] = {
+        'message': 'Access denied: invalid credentials',
     }
+    return response
+    # return {
+    #     'statusCode': 403,
+    #     'body': 'Forbidden',
+    # }

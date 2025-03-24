@@ -11,6 +11,7 @@ from aws_cdk import (
     Fn,
     aws_sqs as sqs,
     aws_apigatewayv2_authorizers as authorizers,
+    Duration,
 )
 from constructs import Construct
 from dotenv import load_dotenv
@@ -32,7 +33,7 @@ class ImportServiceStack(Stack):
                 s3.CorsRule(
                     allowed_headers=["*"],
                     allowed_methods=[s3.HttpMethods.PUT, s3.HttpMethods.POST, s3.HttpMethods.GET, s3.HttpMethods.DELETE],
-                    allowed_origins=[os.getenv('CORS_URL')],
+                    allowed_origins=[f"https://{Fn.import_value('DistributionDomain')}"],
                 )
             ]
         )
@@ -96,9 +97,10 @@ class ImportServiceStack(Stack):
         basic_authorizer = authorizers.HttpLambdaAuthorizer(
             "BasicAuthorizer",
             importedAuthorizerLambda,
-            authorization_type = authorizers.HttpLambdaAuthorizerType.CUSTOM,
-            # authorization_type = authorizers.HttpLambdaAuthorizerType.REQUEST,
-            identity_source=["$request.header.Authorization"] #method.request.header.Authorization
+            response_types=[authorizers.HttpLambdaResponseType.IAM], # .SIMPLE is recomended die to performance.
+            # authorization_type=authorizers.HttpLambdaAuthorizationType.TOKEN,
+            identity_source=["$request.header.Authorization"],
+            results_cache_ttl=Duration.seconds(0)
         )
 
         # Create HTTP API
@@ -107,9 +109,10 @@ class ImportServiceStack(Stack):
             create_default_stage=True,  # This creates the $default stage
             cors_preflight=apigw_v2.CorsPreflightOptions(
                 allow_methods=[apigw_v2.CorsHttpMethod.ANY],
-                allow_origins=['*'],
-                allow_headers=['*']
-            )
+                allow_origins=[f"https://{Fn.import_value('DistributionDomain')}"],
+                allow_headers=['*'],
+                allow_credentials=True,
+            ),
         )
         # Add development stage
         apigw_v2.HttpStage(self, "DevStage",
@@ -127,3 +130,4 @@ class ImportServiceStack(Stack):
             integration=integrations.HttpLambdaIntegration("ImportIntegration", import_product_file),
             authorizer=basic_authorizer,
         )
+        # importedAuthorizerLambda.grant_invoke(iam.ServicePrincipal("apigateway.amazonaws.com"))
