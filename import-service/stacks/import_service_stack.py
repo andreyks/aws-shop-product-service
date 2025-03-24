@@ -100,7 +100,7 @@ class ImportServiceStack(Stack):
             response_types=[authorizers.HttpLambdaResponseType.IAM], # .SIMPLE is recomended die to performance.
             # authorization_type=authorizers.HttpLambdaAuthorizationType.TOKEN,
             identity_source=["$request.header.Authorization"],
-            results_cache_ttl=Duration.seconds(0)
+            results_cache_ttl=Duration.seconds(0),
         )
 
         # Create HTTP API

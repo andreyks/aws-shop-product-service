@@ -8,7 +8,7 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 def handler(event, context):
-    logger.info(event)
+    logger.info(json.dumps(event))
     try:
         # Authorization Header
         if not ('authorizationToken' in event and event['authorizationToken']):
@@ -46,9 +46,21 @@ def handler(event, context):
         # Validate credentials.
         logger.info(f"## Username: {username}, Password: {password}, Stored password: {stored_password}")
         if stored_password and stored_password == password:
-            return generateAllow(username, event['methodArn'])
+            # return {
+            #     'isAuthorized': True,
+            #     'context': {
+            #         'message': 'Access granted: valid credentials',
+            #     }
+            # }
+            return generateAllow(username, event['methodArn'], 'Access granted: valid credentials') # routeArn for SIMPLE
         else:
-            return generateDeny(username, event['methodArn'])
+            # return {
+            #     'isAuthorized': False,
+            #     'context': {
+            #         'message': 'Access denied: invalid credentials',
+            #     }
+            # }
+            return generateDeny(username, event['methodArn'], 'Access denied: invalid credentials') # routeArn for SIMPLE
         
     except Exception as e:
         logger.error(f"## Error: {e}")
@@ -58,7 +70,7 @@ def handler(event, context):
         #     'body': 'Custom Internal Server Error',
         # }
 
-def generatePolicy(principalId, effect, resource):
+def generatePolicy(principalId, effect, resource, message=''):
     authResponse = {}
     authResponse['principalId'] = principalId
     if (effect and resource):
@@ -71,23 +83,18 @@ def generatePolicy(principalId, effect, resource):
         statementOne['Resource'] = resource
         policyDocument['Statement'] = [statementOne]
         authResponse['policyDocument'] = policyDocument
+        authResponse['context'] = {
+            'message': message,
+        }
     return authResponse
     # authResponse_JSON = json.dumps(authResponse)
     # return authResponse_JSON
 
-def generateAllow(principalId, resource):
+def generateAllow(principalId, resource, message=''):
     logger.info(f"## Allow: principalId: {resource}, resource: {resource}")
-    return generatePolicy(principalId, 'Allow', resource)
+    return generatePolicy(principalId, 'Allow', resource, message)
 
 
-def generateDeny(principalId, resource):
+def generateDeny(principalId, resource, message=''):
     logger.info(f"## Deny: principalId: {resource}, resource: {resource}")
-    response = generatePolicy(principalId, 'Deny', resource)
-    response['context'] = {
-        'message': 'Access denied: invalid credentials',
-    }
-    return response
-    # return {
-    #     'statusCode': 403,
-    #     'body': 'Forbidden',
-    # }
+    return generatePolicy(principalId, 'Deny', resource, message)
