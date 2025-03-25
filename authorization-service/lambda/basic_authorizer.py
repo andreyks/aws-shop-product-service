@@ -73,11 +73,12 @@ def handler(event, context):
         
     except Exception as e:
         logger.error(f"## Error: {e}")
-        return 'unauthorized'
+        # return 'unauthorized'
         # return {
         #     'statusCode': 500,
         #     'body': 'Custom Internal Server Error',
         # }
+        return generateDeny('none', event['methodArn'], 'Access denied: Server Error') # routeArn for SIMPLE
 
 def generatePolicy(principalId, effect, resource, message=''):
     authResponse = {}
