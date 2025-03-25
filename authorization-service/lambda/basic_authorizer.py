@@ -27,10 +27,11 @@ def handler(event, context):
         if not (token[0] == 'Basic' and len(token) == 2 and token[1]):
             logger.error("Invalid authorization header")
             # return 'unauthorized'
-            return {
-                'statusCode': 401,
-                'body': json.dumps({'message': 'Invalid authorization header'}),
-            }
+            # return {
+            #     'statusCode': 401,
+            #     'body': json.dumps({'message': 'Invalid authorization header'}),
+            # }
+            return generateDeny('none', event['methodArn'], 'Access denied: invalid authentification header') # routeArn for SIMPLE
             # return generateDeny(username, event['methodArn'])
         token = token[1]
         logger.info(token)
@@ -38,6 +39,14 @@ def handler(event, context):
         # Credentials.
         decodedCreds = base64.b64decode(token).decode('utf-8')
         logger.info(decodedCreds)
+        if decodedCreds.find('=') in [-1,0,len(decodedCreds)-1]:
+            logger.error("Invalid login information")
+            # return 'unauthorized'
+            # return {
+            #     'statusCode': 401,
+            #     'body': json.dumps({'message': 'Invalid login information'}),
+            # }
+            return generateDeny('none', event['methodArn'], 'Access denied: invalid credentials') # routeArn for SIMPLE
         username, password = decodedCreds.split('=')
         password = password.strip()
         # load creadential from ENV
