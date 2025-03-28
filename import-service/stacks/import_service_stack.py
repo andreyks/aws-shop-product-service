@@ -10,7 +10,8 @@ from aws_cdk import (
     CfnOutput,
     Fn,
     aws_sqs as sqs,
-    aws_iam,
+    aws_apigatewayv2_authorizers as authorizers,
+    Duration,
 )
 from constructs import Construct
 from dotenv import load_dotenv
@@ -32,7 +33,7 @@ class ImportServiceStack(Stack):
                 s3.CorsRule(
                     allowed_headers=["*"],
                     allowed_methods=[s3.HttpMethods.PUT, s3.HttpMethods.POST, s3.HttpMethods.GET, s3.HttpMethods.DELETE],
-                    allowed_origins=[os.getenv('CORS_URL')],
+                    allowed_origins=[f"https://{Fn.import_value('DistributionDomain')}"],
                 )
             ]
         )
@@ -57,7 +58,7 @@ class ImportServiceStack(Stack):
         # Grant the Lambda function permission to read the bucket
         bucket.grant_read(import_product_file)
 
-        # Import quque from Product Stack
+        # Import queue from Product Stack
         queueArn = Fn.import_value('CatalogItemsQueueArn')
         importedCatalogItemsQueue = sqs.Queue.from_queue_arn(
             self, 'ImportedCatalogItemsQueue', queueArn
@@ -86,14 +87,21 @@ class ImportServiceStack(Stack):
             s3.NotificationKeyFilter(prefix="uploaded/"),
         )
         importedCatalogItemsQueue.grant_send_messages(parse_product_file)
-        # # Define the queue policy to allow messages from the Lambda function's to SQS
-        # policy = aws_iam.PolicyStatement(
-        #     actions=['sqs:SendMessage', 'sqs:GetQueueUrl','sqs:ListQueues'],
-        #     effect=aws_iam.Effect.ALLOW,
-        #     principals=[aws_iam.ArnPrincipal(parse_product_file.role.role_arn)],
-        #     resources=[importedCatalogItemsQueue.queue_arn]
-        # )
-        # importedCatalogItemsQueue.add_to_resource_policy(policy)
+
+        # Import Authorization Lambda from Authorization Stack
+        lambdaArn = Fn.import_value('AuthorizerLambdaArn')
+        importedAuthorizerLambda = lambda_.Function.from_function_arn(
+            self, 'ImportedAuthorizerLambda', lambdaArn
+        )
+         # Create the Lambda authorizer
+        basic_authorizer = authorizers.HttpLambdaAuthorizer(
+            "BasicAuthorizer",
+            importedAuthorizerLambda,
+            response_types=[authorizers.HttpLambdaResponseType.IAM], # .SIMPLE is recomended die to performance.
+            # authorization_type=authorizers.HttpLambdaAuthorizationType.TOKEN,
+            identity_source=["$request.header.Authorization"],
+            results_cache_ttl=Duration.seconds(0),
+        )
 
         # Create HTTP API
         http_api = apigw_v2.HttpApi(
@@ -101,9 +109,10 @@ class ImportServiceStack(Stack):
             create_default_stage=True,  # This creates the $default stage
             cors_preflight=apigw_v2.CorsPreflightOptions(
                 allow_methods=[apigw_v2.CorsHttpMethod.ANY],
-                allow_origins=['*'],
-                allow_headers=['*']
-            )
+                allow_origins=[f"https://{Fn.import_value('DistributionDomain')}"],
+                allow_headers=['*'],
+                allow_credentials=True,
+            ),
         )
         # Add development stage
         apigw_v2.HttpStage(self, "DevStage",
@@ -118,5 +127,7 @@ class ImportServiceStack(Stack):
         http_api.add_routes(
             path="/import",
             methods=[apigw_v2.HttpMethod.GET],
-            integration=integrations.HttpLambdaIntegration("ImportIntegration", import_product_file)
+            integration=integrations.HttpLambdaIntegration("ImportIntegration", import_product_file),
+            authorizer=basic_authorizer,
         )
+        # importedAuthorizerLambda.grant_invoke(iam.ServicePrincipal("apigateway.amazonaws.com"))
