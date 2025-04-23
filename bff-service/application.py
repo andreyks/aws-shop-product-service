@@ -2,6 +2,7 @@ from flask import Flask, request, Response
 import requests
 import logging
 import json
+from dotenv import load_dotenv, dotenv_values
 
 application = Flask(__name__)
 
@@ -15,8 +16,8 @@ INTERNAL_API_URL = "https://cj1fjt38ve.execute-api.eu-north-1.amazonaws.com/deve
 def proxy(path):
     logger.info(f"## Received request for path: {path}")
     logger.info(f"## Request method: {request.method}")
-    logger.info(f"## Request headers: {request.headers}")
-    logger.info(f"## Request cookies: {request.cookies}")
+    logger.info(f"## Request headers: {json.dumps(request.headers)}")
+    logger.info(f"## Request cookies: {json.dumps(request.cookies)}")
     logger.info(f"## Request data len: {len(request.get_data())}")
 
     # Construct the URL for the internal API
